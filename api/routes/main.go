@@ -10,13 +10,15 @@ func AppRoutes(router *gin.Engine) *gin.RouterGroup {
 
 	tweetController := controllers.NewTweetController()
 
-	v1 := router.Group("")
+	api := router.Group("")
 	{
-		v1.GET("/tweets", tweetController.FindAll)
-		v1.POST("/tweets", tweetController.Create)
-		v1.PUT("/tweets/:id", tweetController.Update)
-		v1.DELETE("/tweets/:id", tweetController.Delete)
+		api.GET("/tweets", tweetController.FindAll)
+		api.GET("/tweets/:id", tweetController.FindById)
+		api.GET("/tweets/user/:user", tweetController.FindByUser)
+		api.POST("/tweets", tweetController.Create)
+		api.PUT("/tweets/:id", tweetController.Update)
+		api.DELETE("/tweets/:id", tweetController.Delete)
 	}
 
-	return v1
+	return api
 }
