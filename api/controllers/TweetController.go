@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"brittola-api/api/entities"
+
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -67,16 +68,25 @@ func (t *tweetController) Create(ctx *gin.Context) {
 
 func (t *tweetController) Update(ctx *gin.Context) {
 	id := ctx.Param("id")
+	var data entities.Tweet
+
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Erro ao processar JSON",
+		})
+		return
+	}
+
+	if data.Description == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Campo 'description' não pode ser vazio",
+		})
+		return
+	}
 
 	for i, v := range t.tweets {
 		if v.ID == id {
-			if err := ctx.BindJSON(&t.tweets[i]); err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{
-					"error": "Formato JSON inválido.",
-				})
-				return
-			}
-
+			t.tweets[i].Description = data.Description
 			ctx.JSON(http.StatusOK, t.tweets[i])
 			return
 		}
