@@ -2,68 +2,69 @@ package controllers
 
 import (
 	"brittola-api/api/entities"
-
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type tweetController struct {
-	tweets []entities.Tweet
+	db *gorm.DB
 }
 
-func NewTweetController() *tweetController {
-	return &tweetController{}
+func NewTweetController(db *gorm.DB) *tweetController {
+	return &tweetController{db: db}
 }
 
 func (t *tweetController) FindAll(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, t.tweets)
+	var tweets []entities.Tweet
+	t.db.Find(&tweets)
+	ctx.JSON(http.StatusOK, tweets)
 }
 
 func (t *tweetController) FindById(ctx *gin.Context) {
 	id := ctx.Param("id")
+	var tweet entities.Tweet
 
-	for i, v := range t.tweets {
-		if v.ID == id {
-			ctx.JSON(http.StatusOK, t.tweets[i])
-			return
-		}
+	if err := t.db.First(&tweet, id).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Tweet not found"})
+		return
 	}
 
-	ctx.JSON(http.StatusNotFound, gin.H{
-		"error": "Tweet not found",
-	})
-
+	ctx.JSON(http.StatusOK, tweet)
 }
 
 func (t *tweetController) FindByUser(ctx *gin.Context) {
 	user := ctx.Param("user")
 	var userTweets []entities.Tweet
 
-	for _, v := range t.tweets {
-		if v.User == user {
-			userTweets = append(userTweets, v)
-		}
+	if err := t.db.Where("user = ?", user).Find(&userTweets).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving tweets"})
+		return
 	}
 
 	if len(userTweets) == 0 {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": "This user has no tweets",
-		})
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "This user has no tweets"})
 		return
 	}
+
 	ctx.JSON(http.StatusOK, userTweets)
 }
 
 func (t *tweetController) Create(ctx *gin.Context) {
-	tweet := entities.NewTweet()
+	var tweet entities.Tweet
 
 	if err := ctx.BindJSON(&tweet); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
 		return
 	}
-	t.tweets = append(t.tweets, *tweet)
 
-	ctx.JSON(http.StatusCreated, t.tweets)
+	if err := t.db.Create(&tweet).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating tweet"})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, tweet)
 }
 
 func (t *tweetController) Update(ctx *gin.Context) {
@@ -71,48 +72,38 @@ func (t *tweetController) Update(ctx *gin.Context) {
 	var data entities.Tweet
 
 	if err := ctx.BindJSON(&data); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Erro ao processar JSON",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
 		return
 	}
 
 	if data.Description == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Campo 'description' não pode ser vazio",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Field 'description' cannot be empty"})
 		return
 	}
 
-	for i, v := range t.tweets {
-		if v.ID == id {
-			t.tweets[i].Description = data.Description
-			ctx.JSON(http.StatusOK, t.tweets[i])
-			return
-		}
+	var tweet entities.Tweet
+
+	if err := t.db.First(&tweet, id).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Tweet not found"})
+		return
 	}
 
-	ctx.JSON(http.StatusNotFound, gin.H{
-		"error": "Tweet não encontrado",
-	})
+	tweet.Description = data.Description
+	t.db.Save(&tweet)
+
+	ctx.JSON(http.StatusOK, tweet)
 }
 
 func (t *tweetController) Delete(ctx *gin.Context) {
 	id := ctx.Param("id")
+	var tweet entities.Tweet
 
-	for i, v := range t.tweets {
-		if v.ID == id {
-			t.tweets = append(t.tweets[0:i], t.tweets[i+1:]...)
-
-			ctx.JSON(http.StatusOK, gin.H{
-				"message": "Tweet deletado.",
-			})
-			return
-		}
+	if err := t.db.First(&tweet, id).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Tweet not found"})
+		return
 	}
 
-	ctx.JSON(http.StatusNotFound, gin.H{
-		"error": "Tweet não encontrado.",
-	})
+	t.db.Delete(&tweet)
 
+	ctx.JSON(http.StatusOK, gin.H{"message": "Tweet deleted"})
 }

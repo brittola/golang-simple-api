@@ -4,20 +4,21 @@ import (
 	"brittola-api/api/controllers"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func AppRoutes(router *gin.Engine) *gin.RouterGroup {
+func AppRoutes(router *gin.Engine, db *gorm.DB) *gin.RouterGroup {
 
-	tweetController := controllers.NewTweetController()
+	tweetController := controllers.NewTweetController(db)
 
-	api := router.Group("")
+	api := router.Group("tweets")
 	{
-		api.GET("/tweets", tweetController.FindAll)
-		api.GET("/tweets/:id", tweetController.FindById)
-		api.GET("/tweets/user/:user", tweetController.FindByUser)
-		api.POST("/tweets", tweetController.Create)
-		api.PUT("/tweets/:id", tweetController.Update)
-		api.DELETE("/tweets/:id", tweetController.Delete)
+		api.GET("/", tweetController.FindAll)
+		api.GET("/:id", tweetController.FindById)
+		api.GET("/user/:user", tweetController.FindByUser)
+		api.POST("/", tweetController.Create)
+		api.PUT("/:id", tweetController.Update)
+		api.DELETE("/:id", tweetController.Delete)
 	}
 
 	return api

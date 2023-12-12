@@ -1,17 +1,11 @@
 package entities
 
-import "github.com/pborman/uuid"
+import (
+	"gorm.io/gorm"
+)
 
 type Tweet struct {
-	ID          string `json:"id"`
+	gorm.Model
 	User        string `json:"user"`
 	Description string `json:"description"`
-}
-
-func NewTweet() *Tweet {
-	tweet := Tweet{
-		ID: uuid.New(),
-	}
-
-	return &tweet
 }
