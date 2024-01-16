@@ -10,15 +10,24 @@ import (
 func AppRoutes(router *gin.Engine, db *gorm.DB) *gin.RouterGroup {
 
 	tweetController := controllers.NewTweetController(db)
+	userController := controllers.NewUserController(db)
 
-	api := router.Group("tweets")
+	api := router.Group("")
 	{
-		api.GET("/", tweetController.FindAll)
-		api.GET("/:id", tweetController.FindById)
-		api.GET("/user/:user", tweetController.FindByUser)
-		api.POST("/", tweetController.Create)
-		api.PUT("/:id", tweetController.Update)
-		api.DELETE("/:id", tweetController.Delete)
+		tweetsAPI := api.Group("tweets")
+		{
+			tweetsAPI.GET("/", tweetController.FindAll)
+			tweetsAPI.GET("/:id", tweetController.FindById)
+			tweetsAPI.GET("/user/:user", tweetController.FindByUser)
+			tweetsAPI.POST("/", tweetController.Create)
+			tweetsAPI.PUT("/:id", tweetController.Update)
+			tweetsAPI.DELETE("/:id", tweetController.Delete)
+		}
+
+		usersAPI := api.Group("users")
+		{
+			usersAPI.POST("/register", userController.Create)
+		}
 	}
 
 	return api
