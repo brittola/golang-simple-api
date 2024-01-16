@@ -6,6 +6,6 @@ import (
 
 type Tweet struct {
 	gorm.Model
-	User        string `json:"user"`
+	UserID      uint   `json:"user_id"`
 	Description string `json:"description"`
 }
