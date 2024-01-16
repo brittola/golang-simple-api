@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -25,6 +26,14 @@ func (u *userController) Create(ctx *gin.Context) {
 		return
 	}
 
+	hashedPassword, err := hashPassword(user.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
+		return
+	}
+
+	user.Password = hashedPassword
+
 	if err := u.db.Create(&user).Error; err != nil {
 		if isDuplicateKeyError(err) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": "Usuário ou e-mail já existente"})
@@ -36,6 +45,15 @@ func (u *userController) Create(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"message": user.Username + " created"})
+}
+
+// gerar hash de senha
+func hashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedPassword), nil
 }
 
 // função auxiliar para verificar se um erro é relacionado à violação de unicidade no MySQL
